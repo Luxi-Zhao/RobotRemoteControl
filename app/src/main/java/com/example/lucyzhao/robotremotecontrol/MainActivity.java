@@ -1,15 +1,23 @@
 package com.example.lucyzhao.robotremotecontrol;
 
+
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.DialogFragment;
+import android.app.FragmentTransaction;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Handler;
 import android.os.Message;
+import android.app.Fragment;
+import android.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.RecyclerView;
@@ -36,11 +44,16 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_ENABLE_BT = 1;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothDevice robotBluetooth = null;
+    private static final String ROBOT_NAME = "HC-06";
     private static final String ROBOT_MAC_ADDRESS = "00:21:13:00:46:44";
     private ConnectThread connectThread;
-    private ConnectedThread connectedThread;
+    protected ConnectedThread connectedThread;
     private static final String TAG = "MY_APP_DEBUG_TAG";
     private Handler mHandler; // handler that gets info from Bluetooth service
+    private Button button1;
+    private Button button0;
+    private DialogFragment alertDialog;
+    private boolean UNPAIRED = false;
 
     // Create a BroadcastReceiver for ACTION_FOUND.
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
@@ -54,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 String deviceName = device.getName();
                 String deviceHardwareAddress = device.getAddress(); // MAC address
-                if(deviceName.equals("HC-06")) {
+                if(deviceName.equals(ROBOT_NAME)) {
                     robotBluetooth = device;
                 }
             }
@@ -81,11 +94,19 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        System.out.println("in oncreate");
+        button0 = (Button) findViewById(R.id.msg0_button);
+        button1 = (Button) findViewById(R.id.msg1_button);
+        Button bluetooth = (Button) findViewById(R.id.enable_bluetooth);
+        bluetooth.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                enableBluetooth();
+            }
+        });
     }
 
-    //button callback
-    public void enableBluetooth(View view){
+    public void enableBluetooth(){
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (mBluetoothAdapter == null) {
             // Device does not support Bluetooth
@@ -117,6 +138,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         if (robotBluetooth == null) {
+            UNPAIRED = true;
             // Register for broadcasts
             IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
             registerReceiver(mReceiver, filter);
@@ -127,6 +149,7 @@ public class MainActivity extends AppCompatActivity {
             mBluetoothAdapter.startDiscovery();
         }
         else {
+            UNPAIRED = false;
             //robot found, start connecting to it
             connectToRobot();
         }
@@ -140,12 +163,34 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume(){
+        super.onResume();
+        System.out.println("in onresume");
+        showAlertDialog();
+    }
+
+    @Override
+    protected void onPause(){
+        super.onPause();
+        if(UNPAIRED) {
+            // Don't forget to unregister the ACTION_FOUND receiver.
+            unregisterReceiver(mReceiver);
+        }
+        if(connectThread != null) {connectThread.cancel();}
+        if(connectedThread != null) {connectedThread.cancel();}
+
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         // Don't forget to unregister the ACTION_FOUND receiver.
-        unregisterReceiver(mReceiver);
-        connectThread.cancel();
-        connectedThread.cancel();
+        if(UNPAIRED) {
+            // Don't forget to unregister the ACTION_FOUND receiver.
+            unregisterReceiver(mReceiver);
+        }
+        if(connectThread != null) {connectThread.cancel();}
+        if(connectedThread != null) {connectedThread.cancel();}
     }
 
 
@@ -169,12 +214,6 @@ public class MainActivity extends AppCompatActivity {
             // because mmSocket is final.
             BluetoothSocket tmp = null;
             mmDevice = device;
-
-            mDialog = new ProgressDialog(MainActivity.this);
-            mDialog.setMessage("Connecting to bluetooth...");
-            mDialog.setCancelable(false);
-            mDialog.show();
-
             try {
                 // Get a BluetoothSocket to connect with the given BluetoothDevice.
                 // MY_UUID is the app's UUID string, also used in the server code.
@@ -199,7 +238,6 @@ public class MainActivity extends AppCompatActivity {
 
             } catch (IOException connectException) {
                 // Unable to connect; close the socket and return.
-                Toast.makeText(getApplicationContext(),"socket connection failed",Toast.LENGTH_SHORT).show();
                 System.out.println("unable to connect to socket");
                 try {
                     mmSocket.close();
@@ -211,7 +249,6 @@ public class MainActivity extends AppCompatActivity {
 
             // The connection attempt succeeded. Perform work associated with
             // the connection in a separate thread.
-            mDialog.dismiss();
             manageMyConnectedSocket(mmSocket);
         }
 
@@ -242,94 +279,86 @@ public class MainActivity extends AppCompatActivity {
         // ... (Add other message types here as needed.)
     }
 
-    private class ConnectedThread extends Thread {
-        private final BluetoothSocket mmSocket;
-        private final InputStream mmInStream;
-        private final OutputStream mmOutStream;
-        private byte[] mmBuffer; // mmBuffer store for the stream
-
-        public ConnectedThread(BluetoothSocket socket) {
-            mmSocket = socket;
-            InputStream tmpIn = null;
-            OutputStream tmpOut = null;
-
-            // Get the input and output streams; using temp objects because
-            // member streams are final.
-            try {
-                tmpIn = socket.getInputStream();
-            } catch (IOException e) {
-                Log.e(TAG, "Error occurred when creating input stream", e);
-            }
-            try {
-                tmpOut = socket.getOutputStream();
-            } catch (IOException e) {
-                Log.e(TAG, "Error occurred when creating output stream", e);
-            }
-
-            mmInStream = tmpIn;
-            mmOutStream = tmpOut;
-        }
-
-        public void run() {
-            mmBuffer = new byte[1024];
-            int numBytes; // bytes returned from read()
-
-            // Keep listening to the InputStream until an exception occurs.
-            while (true) {
-                try {
-                    // Read from the InputStream.
-                    numBytes = mmInStream.read(mmBuffer);
-                    // Send the obtained bytes to the UI activity.
-              /*      Message readMsg = mHandler.obtainMessage(
-                            MessageConstants.MESSAGE_READ, numBytes, -1,
-                            mmBuffer);
-                    readMsg.sendToTarget(); */
-                } catch (IOException e) {
-                    Log.d(TAG, "Input stream was disconnected", e);
-                    Toast.makeText(getApplicationContext(),"input stream disconnected",Toast.LENGTH_LONG).show();
-                    break;
-                }
-            }
-        }
-
-        // Call this from the main activity to send data to the remote device.
-        public void write(byte[] bytes) {
-
-            try {
-                System.out.println("writing" + bytes);
-                mmOutStream.write(bytes);
-
-                // Share the sent message with the UI activity.
-       /*         Message writtenMsg = mHandler.obtainMessage(
-                        MessageConstants.MESSAGE_WRITE, -1, -1, mmBuffer);
-                writtenMsg.sendToTarget(); */
-            } catch (IOException e) {
-                System.out.println("write exception" + bytes);
-                Log.e(TAG, "Error occurred when sending data", e);
-                Toast.makeText(getApplicationContext(),"unable to write",Toast.LENGTH_LONG).show();
-            }
-        }
-
-        // Call this method from the main activity to shut down the connection.
-        public void cancel() {
-            try {
-                mmSocket.close();
-            } catch (IOException e) {
-                Log.e(TAG, "Could not close the connect socket", e);
-                Toast.makeText(getApplicationContext(),"unable to close socket",Toast.LENGTH_LONG).show();
-            }
-        }
-    }
-
     //button callback
     public void send1(View view){
         byte[] number_one = "1".getBytes();
         connectedThread.write(number_one);
     }
     public void send0(View view){
-        byte[] number_zero = "0".getBytes();
+        Fragment fragment = new RemoteControlFragment();
+        FragmentManager fm = getFragmentManager();
+        fm.beginTransaction().replace(R.id.activity_main, fragment).show(fragment).commit();
+
+    }
+    public void imageViewOnClick(View view){
+        byte[] number_zero = "A".getBytes();
         connectedThread.write(number_zero);
     }
+
+
+     public static class RemoteControlFragment extends Fragment {
+       private Button testButton;
+
+        @Override
+        public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                                 Bundle savedInstanceState) {
+            View fragmentView = inflater.inflate(R.layout.fragment_remote_control, container, false);
+            testButton = (Button) fragmentView.findViewById(R.id.test_button);
+            testButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    byte[] test = "test".getBytes();
+                    ((MainActivity) getActivity()).connectedThread.write(test);
+                }
+            });
+
+            // Inflate the layout for this fragment
+            return fragmentView;
+        }
+    }
+
+    void showAlertDialog() {
+        alertDialog = new AlertDialogFragment();
+        alertDialog.show(getFragmentManager(), "dialog");
+    }
+
+    public void doPositiveClick() {
+        enableBluetooth();
+        System.out.println("Positive click!");
+    }
+
+    public void doNegativeClick() {
+        Toast.makeText(getApplicationContext(),"NO BLUETOOTH CONNECTION",Toast.LENGTH_SHORT).show();
+        alertDialog.dismiss();
+        System.out.println("Negative click!");
+    }
+
+    public static class AlertDialogFragment extends DialogFragment {
+
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+
+            return new AlertDialog.Builder(getActivity())
+                    .setIcon(R.drawable.alert_icon)
+                    .setMessage("Connect to bluetooth?")
+                    .setPositiveButton("OK",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int whichButton) {
+                                    ((MainActivity)getActivity()).doPositiveClick();
+                                }
+                            }
+                    )
+                    .setNegativeButton("CANCEL",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int whichButton) {
+                                    ((MainActivity)getActivity()).doNegativeClick();
+                                }
+                            }
+                    )
+                    .create();
+        }
+    }
+
 
 
 }
