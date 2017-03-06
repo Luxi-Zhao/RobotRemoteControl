@@ -56,7 +56,6 @@ public class MainActivity extends AppCompatActivity {
                 String deviceHardwareAddress = device.getAddress(); // MAC address
                 if(deviceName.equals("HC-06")) {
                     robotBluetooth = device;
-                    Toast.makeText(getApplicationContext(),deviceHardwareAddress,Toast.LENGTH_LONG).show();
                 }
             }
             else if (BluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(action)) {
@@ -149,9 +148,9 @@ public class MainActivity extends AppCompatActivity {
         connectedThread.cancel();
     }
 
+
     @Override
     protected void onActivityResult (int requestCode, int resultCode, Intent data)  {
-        Log.v("in on activity result","");
         if(requestCode == REQUEST_ENABLE_BT){
             if(resultCode == RESULT_OK){
                 findBluetoothDevice();
@@ -163,12 +162,18 @@ public class MainActivity extends AppCompatActivity {
     private class ConnectThread extends Thread {
         private final BluetoothSocket mmSocket;
         private final BluetoothDevice mmDevice;
+        ProgressDialog mDialog;
 
         public ConnectThread(BluetoothDevice device) {
             // Use a temporary object that is later assigned to mmSocket
             // because mmSocket is final.
             BluetoothSocket tmp = null;
             mmDevice = device;
+
+            mDialog = new ProgressDialog(MainActivity.this);
+            mDialog.setMessage("Connecting to bluetooth...");
+            mDialog.setCancelable(false);
+            mDialog.show();
 
             try {
                 // Get a BluetoothSocket to connect with the given BluetoothDevice.
@@ -194,6 +199,7 @@ public class MainActivity extends AppCompatActivity {
 
             } catch (IOException connectException) {
                 // Unable to connect; close the socket and return.
+                Toast.makeText(getApplicationContext(),"socket connection failed",Toast.LENGTH_SHORT).show();
                 System.out.println("unable to connect to socket");
                 try {
                     mmSocket.close();
@@ -205,6 +211,7 @@ public class MainActivity extends AppCompatActivity {
 
             // The connection attempt succeeded. Perform work associated with
             // the connection in a separate thread.
+            mDialog.dismiss();
             manageMyConnectedSocket(mmSocket);
         }
 
