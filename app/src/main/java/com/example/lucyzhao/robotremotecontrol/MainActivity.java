@@ -14,15 +14,19 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.PorterDuff;
 import android.media.Image;
 import android.os.Handler;
 import android.os.Message;
 import android.app.Fragment;
 import android.app.FragmentManager;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.RecyclerView;
+import android.transition.Slide;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -53,8 +57,9 @@ public class MainActivity extends AppCompatActivity {
     protected ConnectedThread connectedThread;
     private static final String TAG = "MY_APP_DEBUG_TAG";
     private Handler mHandler; // handler that gets info from Bluetooth service
-    private Button button1;
-    private Button button0;
+    private Button function1Button;
+    private Button remoteButton;
+    private Button function2Button;
     private DialogFragment connectBTAlert;
     private boolean UNPAIRED = false;
 
@@ -98,8 +103,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         System.out.println("in oncreate");
-        button0 = (Button) findViewById(R.id.msg0_button);
-        button1 = (Button) findViewById(R.id.msg1_button);
+        remoteButton = (Button) findViewById(R.id.remote_control_button);
+        function1Button = (Button) findViewById(R.id.function1_button);
+        function2Button = (Button) findViewById(R.id.function2_button);
     }
 
     public void enableBluetooth(){
@@ -288,28 +294,37 @@ public class MainActivity extends AppCompatActivity {
         // ... (Add other message types here as needed.)
     }
     public void send2(View view){
+        function1Button.setBackgroundResource(0);
+        function2Button.setBackgroundResource(R.drawable.dotted_shape);
+        remoteButton.setBackgroundResource(0);
         createFragment(new FunctionTwoFragment());
     }
 
     //button callback
     public void send1(View view){
+        function1Button.setBackgroundResource(R.drawable.dotted_shape);
+        remoteButton.setBackgroundResource(0);
+        function2Button.setBackgroundResource(0);
         createFragment(new FunctionOneFragment());
     }
     public void send0(View view){
+        remoteButton.setBackgroundResource(R.drawable.dotted_shape);
+        function1Button.setBackgroundResource(0);
+        function2Button.setBackgroundResource(0);
         createFragment(new RemoteControlFragment());
     }
 
-    private void createFragment(Fragment fragment){
-        FragmentManager fm = getFragmentManager();
-        if(fm.getBackStackEntryCount() > 0)
-            fm.popBackStack();
-        fm.beginTransaction()
-                .replace(R.id.activity_main, fragment)
-                .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
-                .show(fragment)
-                .addToBackStack(null)
-                .commit();
+    private void createFragment(Fragment fragment) {
+        fragment.setEnterTransition(new Slide(Gravity.RIGHT));
+        fragment.setExitTransition(new Slide(Gravity.LEFT));
+        FragmentTransaction transaction = getFragmentManager().beginTransaction();
+
+        // Replace whatever is in the fragment_container view with this fragment,
+        // and add the transaction to the back stack if needed
+        transaction.replace(R.id.activity_main, fragment);
+        transaction.commit();
     }
+
 
 
      public static class FunctionOneFragment extends Fragment {
@@ -342,20 +357,21 @@ public class MainActivity extends AppCompatActivity {
             backwardButton= (ImageView) fragmentView.findViewById(R.id.backward_button);
             leftButton = (ImageView) fragmentView.findViewById(R.id.left_button);
             rightButton = (ImageView) fragmentView.findViewById(R.id.right_button);
-            //stopButton = (ImageView) fragmentView.findViewById(R.id.mid_button);
 
             forwardButton.setOnTouchListener(new View.OnTouchListener(){
                 @Override
                 public boolean onTouch(View v, MotionEvent motionEvent){
                     if(motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
                         System.out.println("forward down");
-                        byte[] goForward = "f".getBytes();
-                        ((MainActivity) getActivity()).connectedThread.write(goForward);
+                        forwardButton.setColorFilter(R.color.colorPrimary);
+                  /*      byte[] goForward = "f".getBytes();
+                        ((MainActivity) getActivity()).connectedThread.write(goForward); */
                     }
                     if(motionEvent.getAction() == MotionEvent.ACTION_UP) {
                         System.out.println("forward up");
-                        byte[] stop = "s".getBytes();
-                        ((MainActivity) getActivity()).connectedThread.write(stop);
+                        forwardButton.clearColorFilter();
+                     /*   byte[] stop = "s".getBytes();
+                        ((MainActivity) getActivity()).connectedThread.write(stop); */
                     }
                     return true;
                 }
@@ -408,9 +424,6 @@ public class MainActivity extends AppCompatActivity {
                     return true;
                 }
             });
-
-
-
 
             // Inflate the layout for this fragment
             return fragmentView;
