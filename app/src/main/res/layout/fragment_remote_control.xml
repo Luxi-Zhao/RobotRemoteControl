@@ -1,16 +1,49 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/colorAccent"
+    android:layout_height="400dp"
+    android:layout_marginTop="100dp"
+
     >
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="testButton"
-        android:onClick="test"
-        android:id="@+id/test_button"
-        android:layout_marginTop="49dp" />
+
+    <ImageView
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_marginTop="30dp"
+        android:id="@+id/forward_button"
+        android:src="@drawable/up"
+        android:layout_gravity="center_horizontal"/>
+
+    <ImageView
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_marginTop="290dp"
+        android:id="@+id/backward_button"
+        android:src="@drawable/down"
+        android:layout_gravity="center_horizontal"/>
+    <ImageView
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_gravity="center"
+        android:layout_marginEnd="120dp"
+        android:id="@+id/left_button"
+        android:src="@drawable/left" />
+    <ImageView
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:id="@+id/right_button"
+        android:src="@drawable/right"
+        android:layout_gravity="center"
+        android:layout_marginStart = "120dp"
+       />
+    <ImageView
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:id="@+id/mid_button"
+        android:src="@drawable/mid"
+        android:layout_gravity="center"
+    />
+
 
 
 </FrameLayout>
