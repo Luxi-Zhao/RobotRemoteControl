@@ -293,24 +293,27 @@ public class MainActivity extends AppCompatActivity {
 
         // ... (Add other message types here as needed.)
     }
-    public void send2(View view){
+    public void function2(View view){
         function1Button.setBackgroundResource(0);
         function2Button.setBackgroundResource(R.drawable.dotted_shape);
         remoteButton.setBackgroundResource(0);
+        connectedThread.writeMsg("2");
         createFragment(new FunctionTwoFragment());
     }
 
     //button callback
-    public void send1(View view){
+    public void function1(View view){
         function1Button.setBackgroundResource(R.drawable.dotted_shape);
         remoteButton.setBackgroundResource(0);
         function2Button.setBackgroundResource(0);
+        connectedThread.writeMsg("1");
         createFragment(new FunctionOneFragment());
     }
-    public void send0(View view){
+    public void remoteControl(View view){
         remoteButton.setBackgroundResource(R.drawable.dotted_shape);
         function1Button.setBackgroundResource(0);
         function2Button.setBackgroundResource(0);
+        connectedThread.writeMsg("c");
         createFragment(new RemoteControlFragment());
     }
 
@@ -363,15 +366,13 @@ public class MainActivity extends AppCompatActivity {
                 public boolean onTouch(View v, MotionEvent motionEvent){
                     if(motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
                         System.out.println("forward down");
-                        forwardButton.setColorFilter(R.color.colorPrimary);
-                  /*      byte[] goForward = "f".getBytes();
-                        ((MainActivity) getActivity()).connectedThread.write(goForward); */
+                        forwardButton.setColorFilter(R.color.colorAccent);
+                        ((MainActivity) getActivity()).connectedThread.writeMsg("f");
                     }
                     if(motionEvent.getAction() == MotionEvent.ACTION_UP) {
                         System.out.println("forward up");
                         forwardButton.clearColorFilter();
-                     /*   byte[] stop = "s".getBytes();
-                        ((MainActivity) getActivity()).connectedThread.write(stop); */
+                        ((MainActivity) getActivity()).connectedThread.writeMsg("s");
                     }
                     return true;
                 }
@@ -381,13 +382,13 @@ public class MainActivity extends AppCompatActivity {
                 public boolean onTouch(View v, MotionEvent motionEvent){
                     if(motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
                         System.out.println("right down");
-                        byte[] turnRight = "r".getBytes();
-                        ((MainActivity) getActivity()).connectedThread.write(turnRight);
+                        rightButton.setColorFilter(R.color.colorAccent);
+                        ((MainActivity) getActivity()).connectedThread.writeMsg("r");
                     }
                     if(motionEvent.getAction() == MotionEvent.ACTION_UP) {
                         System.out.println("forward up");
-                        byte[] stop = "s".getBytes();
-                        ((MainActivity) getActivity()).connectedThread.write(stop);
+                        rightButton.clearColorFilter();
+                        ((MainActivity) getActivity()).connectedThread.writeMsg("s");
                     }
                     return true;
                 }
@@ -397,13 +398,13 @@ public class MainActivity extends AppCompatActivity {
                 public boolean onTouch(View v, MotionEvent motionEvent){
                     if(motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
                         System.out.println("backward down");
-               /*         byte[] goBackward = "b".getBytes();
-                        ((MainActivity) getActivity()).connectedThread.write(goBackward); */
+                        backwardButton.setColorFilter(R.color.colorAccent);
+                        ((MainActivity) getActivity()).connectedThread.writeMsg("b");
                     }
                     if(motionEvent.getAction() == MotionEvent.ACTION_UP) {
                         System.out.println("forward up");
-                 /*       byte[] stop = "s".getBytes();
-                        ((MainActivity) getActivity()).connectedThread.write(stop); */
+                        backwardButton.clearColorFilter();
+                        ((MainActivity) getActivity()).connectedThread.writeMsg("s");
                     }
                     return true;
                 }
@@ -413,13 +414,13 @@ public class MainActivity extends AppCompatActivity {
                 public boolean onTouch(View v, MotionEvent motionEvent){
                     if(motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
                         System.out.println("left down");
-                        byte[] turnLeft = "l".getBytes();
-                        ((MainActivity) getActivity()).connectedThread.write(turnLeft);
+                        leftButton.setColorFilter(R.color.colorAccent);
+                        ((MainActivity) getActivity()).connectedThread.writeMsg("l");
                     }
                     if(motionEvent.getAction() == MotionEvent.ACTION_UP) {
                         System.out.println("forward up");
-                        byte[] stop = "s".getBytes();
-                        ((MainActivity) getActivity()).connectedThread.write(stop);
+                        leftButton.clearColorFilter();
+                        ((MainActivity) getActivity()).connectedThread.writeMsg("s");
                     }
                     return true;
                 }
