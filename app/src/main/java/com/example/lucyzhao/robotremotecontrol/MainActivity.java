@@ -14,6 +14,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.Image;
 import android.os.Handler;
 import android.os.Message;
 import android.app.Fragment;
@@ -23,10 +24,12 @@ import android.os.Bundle;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -52,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
     private Handler mHandler; // handler that gets info from Bluetooth service
     private Button button1;
     private Button button0;
-    private DialogFragment alertDialog;
+    private DialogFragment connectBTAlert;
     private boolean UNPAIRED = false;
 
     // Create a BroadcastReceiver for ACTION_FOUND.
@@ -97,13 +100,6 @@ public class MainActivity extends AppCompatActivity {
         System.out.println("in oncreate");
         button0 = (Button) findViewById(R.id.msg0_button);
         button1 = (Button) findViewById(R.id.msg1_button);
-        Button bluetooth = (Button) findViewById(R.id.enable_bluetooth);
-        bluetooth.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                enableBluetooth();
-            }
-        });
     }
 
     public void enableBluetooth(){
@@ -238,6 +234,19 @@ public class MainActivity extends AppCompatActivity {
 
             } catch (IOException connectException) {
                 // Unable to connect; close the socket and return.
+                //CRASH: create a handler for this thread
+          /*      new AlertDialog.Builder(getApplicationContext())
+                        .setTitle("Bluetooth Connection")
+                        .setIcon(R.drawable.alert_icon)
+                        .setMessage("No bluetooth connection")
+                        .setNegativeButton("CANCEL",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int whichButton) {
+                                        dialog.cancel();
+                                    }
+                                }
+                        )
+                        .create().show(); */
                 System.out.println("unable to connect to socket");
                 try {
                     mmSocket.close();
@@ -278,39 +287,130 @@ public class MainActivity extends AppCompatActivity {
 
         // ... (Add other message types here as needed.)
     }
+    public void send2(View view){
+        createFragment(new FunctionTwoFragment());
+    }
 
     //button callback
     public void send1(View view){
-        byte[] number_one = "1".getBytes();
-        connectedThread.write(number_one);
+        createFragment(new FunctionOneFragment());
     }
     public void send0(View view){
-        Fragment fragment = new RemoteControlFragment();
+        createFragment(new RemoteControlFragment());
+    }
+
+    private void createFragment(Fragment fragment){
         FragmentManager fm = getFragmentManager();
-        fm.beginTransaction().replace(R.id.activity_main, fragment).show(fragment).commit();
-
+        if(fm.getBackStackEntryCount() > 0)
+            fm.popBackStack();
+        fm.beginTransaction()
+                .replace(R.id.activity_main, fragment)
+                .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
+                .show(fragment)
+                .addToBackStack(null)
+                .commit();
     }
-    public void imageViewOnClick(View view){
-        byte[] number_zero = "A".getBytes();
-        connectedThread.write(number_zero);
-    }
 
+
+     public static class FunctionOneFragment extends Fragment {
+         @Override
+         public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                                  Bundle savedInstanceState){
+             return inflater.inflate(R.layout.fragment_function_one, container, false);
+         }
+     }
+
+    public static class FunctionTwoFragment extends Fragment {
+        @Override
+        public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                                 Bundle savedInstanceState){
+            return inflater.inflate(R.layout.fragment_function_two, container, false);
+        }
+    }
 
      public static class RemoteControlFragment extends Fragment {
-       private Button testButton;
+         private ImageView forwardButton;
+         private ImageView backwardButton;
+         private ImageView leftButton;
+         private ImageView rightButton;
 
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
             View fragmentView = inflater.inflate(R.layout.fragment_remote_control, container, false);
-            testButton = (Button) fragmentView.findViewById(R.id.test_button);
-            testButton.setOnClickListener(new View.OnClickListener() {
+            forwardButton = (ImageView) fragmentView.findViewById(R.id.forward_button);
+            backwardButton= (ImageView) fragmentView.findViewById(R.id.backward_button);
+            leftButton = (ImageView) fragmentView.findViewById(R.id.left_button);
+            rightButton = (ImageView) fragmentView.findViewById(R.id.right_button);
+            //stopButton = (ImageView) fragmentView.findViewById(R.id.mid_button);
+
+            forwardButton.setOnTouchListener(new View.OnTouchListener(){
                 @Override
-                public void onClick(View v) {
-                    byte[] test = "test".getBytes();
-                    ((MainActivity) getActivity()).connectedThread.write(test);
+                public boolean onTouch(View v, MotionEvent motionEvent){
+                    if(motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+                        System.out.println("forward down");
+                        byte[] goForward = "f".getBytes();
+                        ((MainActivity) getActivity()).connectedThread.write(goForward);
+                    }
+                    if(motionEvent.getAction() == MotionEvent.ACTION_UP) {
+                        System.out.println("forward up");
+                        byte[] stop = "s".getBytes();
+                        ((MainActivity) getActivity()).connectedThread.write(stop);
+                    }
+                    return true;
                 }
             });
+            rightButton.setOnTouchListener(new View.OnTouchListener(){
+                @Override
+                public boolean onTouch(View v, MotionEvent motionEvent){
+                    if(motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+                        System.out.println("right down");
+                        byte[] turnRight = "r".getBytes();
+                        ((MainActivity) getActivity()).connectedThread.write(turnRight);
+                    }
+                    if(motionEvent.getAction() == MotionEvent.ACTION_UP) {
+                        System.out.println("forward up");
+                        byte[] stop = "s".getBytes();
+                        ((MainActivity) getActivity()).connectedThread.write(stop);
+                    }
+                    return true;
+                }
+            });
+            backwardButton.setOnTouchListener(new View.OnTouchListener(){
+                @Override
+                public boolean onTouch(View v, MotionEvent motionEvent){
+                    if(motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+                        System.out.println("backward down");
+               /*         byte[] goBackward = "b".getBytes();
+                        ((MainActivity) getActivity()).connectedThread.write(goBackward); */
+                    }
+                    if(motionEvent.getAction() == MotionEvent.ACTION_UP) {
+                        System.out.println("forward up");
+                 /*       byte[] stop = "s".getBytes();
+                        ((MainActivity) getActivity()).connectedThread.write(stop); */
+                    }
+                    return true;
+                }
+            });
+            leftButton.setOnTouchListener(new View.OnTouchListener(){
+                @Override
+                public boolean onTouch(View v, MotionEvent motionEvent){
+                    if(motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+                        System.out.println("left down");
+                        byte[] turnLeft = "l".getBytes();
+                        ((MainActivity) getActivity()).connectedThread.write(turnLeft);
+                    }
+                    if(motionEvent.getAction() == MotionEvent.ACTION_UP) {
+                        System.out.println("forward up");
+                        byte[] stop = "s".getBytes();
+                        ((MainActivity) getActivity()).connectedThread.write(stop);
+                    }
+                    return true;
+                }
+            });
+
+
+
 
             // Inflate the layout for this fragment
             return fragmentView;
@@ -318,8 +418,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void showAlertDialog() {
-        alertDialog = new AlertDialogFragment();
-        alertDialog.show(getFragmentManager(), "dialog");
+        connectBTAlert = new AlertDialogFragment();
+        connectBTAlert.show(getFragmentManager(), "dialog");
     }
 
     public void doPositiveClick() {
@@ -329,16 +429,29 @@ public class MainActivity extends AppCompatActivity {
 
     public void doNegativeClick() {
         Toast.makeText(getApplicationContext(),"NO BLUETOOTH CONNECTION",Toast.LENGTH_SHORT).show();
-        alertDialog.dismiss();
+        connectBTAlert.dismiss();
         System.out.println("Negative click!");
     }
 
     public static class AlertDialogFragment extends DialogFragment {
 
+        public static AlertDialogFragment newInstance(String title, String msg, boolean posButton) {
+            AlertDialogFragment frag = new AlertDialogFragment();
+            Bundle args = new Bundle();
+            args.putString("title", title);
+            args.putString("message", msg);
+            args.putBoolean("posButton", posButton);
+            frag.setArguments(args);
+            return frag;
+        }
+
+
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
 
+
             return new AlertDialog.Builder(getActivity())
+                    .setTitle("Bluetooth Connection")
                     .setIcon(R.drawable.alert_icon)
                     .setMessage("Connect to bluetooth?")
                     .setPositiveButton("OK",

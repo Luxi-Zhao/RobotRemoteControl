@@ -4,18 +4,9 @@
     android:id="@+id/activity_main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:padding="16dp"
     tools:context="com.example.lucyzhao.robotremotecontrol.MainActivity">
 
-
-    <ImageView
-        android:layout_width="70dp"
-        android:layout_height="70dp"
-        android:src="@drawable/button"
-        android:onClick="imageViewOnClick"
-        android:layout_above="@+id/msg0_button"
-        android:layout_toEndOf="@+id/msg1_button"
-        android:layout_marginStart="77dp"
-        android:id="@+id/imageView2" />
 
     <Button
         android:layout_width="wrap_content"
@@ -23,28 +14,30 @@
         android:text="send 1"
         android:onClick="send1"
         android:id="@+id/msg1_button"
-        android:layout_marginTop="49dp"
-        android:layout_below="@+id/enable_bluetooth"
-        android:layout_alignEnd="@+id/enable_bluetooth" />
+        android:layout_alignBottom="@+id/msg0_button"
+        android:layout_centerHorizontal="true" />
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/msg1_button"
-        android:layout_alignEnd="@+id/msg1_button"
-        android:layout_marginTop="34dp"
+        android:text="send 2"
+        android:onClick="send2"
+        android:id="@+id/msg2_button"
+        android:layout_alignBaseline="@+id/msg1_button"
+        android:layout_alignBottom="@+id/msg1_button"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="24dp" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:text="send 0"
         android:onClick="send0"
         android:id="@+id/msg0_button"
-        />
+        android:layout_marginTop="41dp"
+        android:layout_marginStart="23dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true" />
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="bluetooth"
-        android:id="@+id/enable_bluetooth"
-        android:layout_alignParentStart="true"
-        android:layout_marginStart="12dp"
-        android:layout_marginTop="16dp" />
 
 </RelativeLayout>
