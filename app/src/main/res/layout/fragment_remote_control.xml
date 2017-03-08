@@ -7,42 +7,36 @@
     >
 
     <ImageView
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:layout_marginTop="30dp"
+        android:layout_width="130dp"
+        android:layout_height="130dp"
+        android:layout_marginTop="50dp"
         android:id="@+id/forward_button"
-        android:src="@drawable/up"
+        android:src="@drawable/button_up"
         android:layout_gravity="center_horizontal"/>
 
     <ImageView
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:layout_marginTop="290dp"
+        android:layout_width="130dp"
+        android:layout_height="130dp"
+        android:layout_marginTop="220dp"
         android:id="@+id/backward_button"
-        android:src="@drawable/down"
+        android:src="@drawable/button_down"
         android:layout_gravity="center_horizontal"/>
     <ImageView
-        android:layout_width="80dp"
-        android:layout_height="80dp"
+        android:layout_width="130dp"
+        android:layout_height="130dp"
         android:layout_gravity="center"
-        android:layout_marginEnd="120dp"
+        android:layout_marginEnd="85dp"
         android:id="@+id/left_button"
-        android:src="@drawable/left" />
+        android:src="@drawable/button_left" />
     <ImageView
-        android:layout_width="80dp"
-        android:layout_height="80dp"
+        android:layout_width="130dp"
+        android:layout_height="130dp"
         android:id="@+id/right_button"
-        android:src="@drawable/right"
+        android:src="@drawable/button_right"
         android:layout_gravity="center"
-        android:layout_marginStart = "120dp"
+        android:layout_marginStart = "85dp"
        />
-    <ImageView
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:id="@+id/mid_button"
-        android:src="@drawable/mid"
-        android:layout_gravity="center"
-    />
+
 
 
 
