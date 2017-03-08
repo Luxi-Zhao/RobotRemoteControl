@@ -33,7 +33,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -59,11 +61,19 @@ public class MainActivity extends AppCompatActivity {
     protected ConnectedThread connectedThread;
     private static final String TAG = "MY_APP_DEBUG_TAG";
     private Button function1Button;
-    private Button remoteButton;
     private Button function2Button;
+    private Button remoteButton;
+    private Switch BTSwitch;
+    private TextView BTprompt;
+    private TextView leftWheelSpeed;
     private DialogFragment connectBTAlert;
+    private DialogFragment deviceDisconnected;
+    private DialogFragment noBTconnection;
+    private DialogFragment socketCreationFailed;
+    private DialogFragment socketConnectFailed;
     private boolean UNPAIRED = false;
     private ProgressDialog connectionProgressDialog;
+
 
     // Create a BroadcastReceiver for ACTION_FOUND.
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
@@ -76,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
                 // object and its info from the Intent.
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 String deviceName = device.getName();
-                String deviceHardwareAddress = device.getAddress(); // MAC address
+                //String deviceHardwareAddress = device.getAddress(); // MAC address
                 if(deviceName.equals(ROBOT_NAME)) {
                     robotBluetooth = device;
                 }
@@ -97,6 +107,11 @@ public class MainActivity extends AppCompatActivity {
                 }
                 mDialog.dismiss();
             }
+            else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)){
+                System.out.println("device disconnected");
+                deviceDisconnected = AlertDialogFragment.newInstance("Device disconnected",false);
+                deviceDisconnected.show(getFragmentManager(),"noBTconnection");
+            }
         }
     };
 
@@ -104,28 +119,61 @@ public class MainActivity extends AppCompatActivity {
     Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
-
+            //TODO: HANDLE SPEEDS
             switch(msg.what) {
                 case MessageConstants.WHEEL_READING_LEFT:
                     System.out.println("wheelSpeed left is " + msg.arg1);
+                    leftWheelSpeed.setText(msg.arg1);
                     break;
                 case MessageConstants.WHEEL_READING_RIGHT:
                     System.out.println("wheelSpeed right is " + msg.arg1);
                     break;
                 case MessageConstants.CONNECTION_FAILURE:
                     System.out.println("handling socket connection failure");
-                    AlertDialogFragment.newInstance("Socket connection failed.", false)
-                            .show(getFragmentManager(),"noConnectionDialog");
+                    socketConnectFailed = AlertDialogFragment.newInstance("Socket connection failed", false);
+                    socketConnectFailed.show(getFragmentManager(),"noConnectionDialog");
                     disableModeButtons();
                     break;
                 case MessageConstants.SOCKET_CONNECTION_SUCCEEDED:
                     System.out.println("socket connection succeeded");
                     connectionProgressDialog.dismiss();
+
+                    IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+                    registerReceiver(mReceiver, filter);
+
                     break;
                 default: System.out.println("invalid tag: "+msg.what);
             }
         }
     };
+
+    private interface ArduinoReadTags {
+        byte[] START_TAG_LEFT = "{".getBytes();
+        byte[] END_TAG_LEFT = "}".getBytes();
+        byte[] START_TAG_RIGHT = "[".getBytes();
+        byte[] END_TAG_RIGHT = "]".getBytes();
+    }
+
+    private interface ArduinoWriteTags {
+        String GO_FORWARD_CMD = "f";
+        String GO_BACKWARD_CMD = "b";
+        String TURN_LEFT_CMD = "l";
+        String TURN_RIGHT_CMD = "r";
+        String STOP_CMD = "s";
+        /*-------modes--------------*/
+        String FUNCTION_ONE = "1";
+        String FUNCTION_TWO = "2";
+        String REMOTE_CONTROL = "c";
+    }
+
+    // Defines several constants used when transmitting messages between the
+    // service and the UI.
+    private interface MessageConstants {
+        int WHEEL_READING_LEFT = 0;
+        int WHEEL_READING_RIGHT = 1;
+        int CONNECTION_FAILURE = 2;
+        int SOCKET_CONNECTION_SUCCEEDED = 3;
+    }
 
 
     @Override
@@ -136,6 +184,20 @@ public class MainActivity extends AppCompatActivity {
         remoteButton = (Button) findViewById(R.id.remote_control_button);
         function1Button = (Button) findViewById(R.id.function1_button);
         function2Button = (Button) findViewById(R.id.function2_button);
+        BTSwitch = (Switch) findViewById(R.id.BT_connection_switch);
+        BTprompt = (TextView) findViewById(R.id.BT_connection_prompt);
+
+        BTSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked){
+                    enableBluetooth();
+                }
+            }
+        });
+        setBTpromptVisibility(View.INVISIBLE);
+
+        leftWheelSpeed = (TextView) findViewById(R.id.left_wheel_speed);
     }
 
     public void enableBluetooth(){
@@ -208,9 +270,15 @@ public class MainActivity extends AppCompatActivity {
             // Don't forget to unregister the ACTION_FOUND receiver.
             unregisterReceiver(mReceiver);
         }
+        //TODO: USE AN ARRAYLIST TO MANAGE ALL INSTANTIATED ALERTS
+        if(connectBTAlert != null) {connectBTAlert.dismiss();}
+        if(noBTconnection != null) {noBTconnection.dismiss();}
+        if(socketCreationFailed != null) {socketCreationFailed.dismiss();}
+        if(socketConnectFailed != null) {socketConnectFailed.dismiss();}
+        if(deviceDisconnected != null) {deviceDisconnected.dismiss();}
+
         if(connectThread != null) {connectThread.cancel();}
         if(connectedThread != null) {connectedThread.cancel();}
-
     }
 
     @Override
@@ -235,18 +303,24 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void setBTpromptVisibility(int visibility){
+        if(visibility == View.VISIBLE)
+            BTSwitch.setChecked(false);
+        BTprompt.setVisibility(visibility);
+        BTSwitch.setVisibility(visibility);
+    }
 
     private class ConnectThread extends Thread {
         private final BluetoothSocket mmSocket;
-        private final BluetoothDevice mmDevice;
-        ProgressDialog mDialog;
+        private static final String UUID_STRING = "00001101-0000-1000-8000-00805F9B34FB";
 
         public ConnectThread(BluetoothDevice device) {
             // Use a temporary object that is later assigned to mmSocket
             // because mmSocket is final.
             BluetoothSocket tmp = null;
-            mmDevice = device;
             try {
+                setBTpromptVisibility(View.INVISIBLE);
+
                 connectionProgressDialog = new ProgressDialog(MainActivity.this);
                 connectionProgressDialog.setMessage("connecting to bluetooth");
                 connectionProgressDialog.setCancelable(false);
@@ -255,10 +329,11 @@ public class MainActivity extends AppCompatActivity {
                 // Get a BluetoothSocket to connect with the given BluetoothDevice.
                 // MY_UUID is the app's UUID string, also used in the server code.
                 System.out.println("creating a socket");
-                tmp = device.createRfcommSocketToServiceRecord(UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"));
+                tmp = device.createRfcommSocketToServiceRecord(UUID.fromString(UUID_STRING));
             } catch (IOException e) {
                 connectionProgressDialog.dismiss();
-                AlertDialogFragment.newInstance("Socket creation failed", false).show(getFragmentManager(),"noConnectionDialog");
+                socketCreationFailed = AlertDialogFragment.newInstance("Socket creation failed", false);
+                socketCreationFailed.show(getFragmentManager(),"noConnectionDialog");
             }
             mmSocket = tmp;
         }
@@ -307,35 +382,6 @@ public class MainActivity extends AppCompatActivity {
         mHandler.obtainMessage(MessageConstants.SOCKET_CONNECTION_SUCCEEDED).sendToTarget();
         connectedThread = new ConnectedThread(mmSocket);
         connectedThread.start();
-    }
-
-
-    private interface ArduinoReadTags {
-        byte[] START_TAG_LEFT = "{".getBytes();
-        byte[] END_TAG_LEFT = "}".getBytes();
-        byte[] START_TAG_RIGHT = "[".getBytes();
-        byte[] END_TAG_RIGHT = "]".getBytes();
-    }
-
-    private interface ArduinoWriteTags {
-       String GO_FORWARD_CMD = "f";
-       String GO_BACKWARD_CMD = "b";
-       String TURN_LEFT_CMD = "l";
-       String TURN_RIGHT_CMD = "r";
-       String STOP_CMD = "s";
-       /*-------modes--------------*/
-       String FUNCTION_ONE = "1";
-       String FUNCTION_TWO = "2";
-       String REMOTE_CONTROL = "c";
-    }
-
-    // Defines several constants used when transmitting messages between the
-    // service and the UI.
-    private interface MessageConstants {
-        int WHEEL_READING_LEFT = 0;
-        int WHEEL_READING_RIGHT = 1;
-        int CONNECTION_FAILURE = 2;
-        int SOCKET_CONNECTION_SUCCEEDED = 3;
     }
 
     public class ConnectedThread extends Thread {
@@ -600,6 +646,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void showAlertDialog() {
+        setBTpromptVisibility(View.INVISIBLE);
         connectBTAlert = AlertDialogFragment.newInstance("Connect to bluetooth?",true);
         connectBTAlert.show(getFragmentManager(),"dialog");
     }
@@ -611,8 +658,8 @@ public class MainActivity extends AppCompatActivity {
 
     public void doNegativeClick() {
         connectBTAlert.dismiss();
-        AlertDialogFragment.newInstance("No bluetooth connection", false)
-                .show(getFragmentManager(),"noBTConnection");
+        noBTconnection = AlertDialogFragment.newInstance("No bluetooth connection", false);
+        noBTconnection.show(getFragmentManager(),"noBTConnection");
         disableModeButtons();
         System.out.println("Negative click!");
     }
@@ -664,10 +711,11 @@ public class MainActivity extends AppCompatActivity {
                         .create();
             }
             else {
-                return builder.setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
+                return builder.setNegativeButton("OK", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         dismiss();
+                        ((MainActivity)getActivity()).setBTpromptVisibility(View.VISIBLE);
                     }
                 }).create();
             }

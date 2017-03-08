@@ -42,4 +42,24 @@
         android:layout_alignParentEnd="true"
         android:layout_marginEnd="20dp" />
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="connect to bluetooth"
+        android:textColor="@color/colorAccent"
+        android:textSize="12sp"
+        android:fontFamily="monospace"
+        android:id="@+id/BT_connection_prompt"
+        android:textAllCaps="true"
+        android:layout_marginBottom="5dp"
+        android:layout_above="@+id/BT_connection_switch"
+        android:layout_centerHorizontal="true" />
+
+    <Switch
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="15dp"
+        android:id="@+id/BT_connection_switch"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true" />
 </RelativeLayout>
