@@ -14,34 +14,32 @@
         android:text="manual"
         android:onClick="remoteControl"
         android:id="@+id/remote_control_button"
-        android:layout_marginTop="41dp"
-        android:layout_marginStart="23dp"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentStart="true"
+        android:layout_marginTop="40dp"
+        android:layout_marginStart="20dp"
         style="@style/Widget.AppCompat.Button.Borderless.Colored" />
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="track"
+        android:text="auto"
         android:onClick="function1"
         android:id="@+id/function1_button"
         style="@style/Widget.AppCompat.Button.Borderless.Colored"
-        android:layout_marginEnd="31dp"
-        android:layout_alignBaseline="@+id/function2_button"
-        android:layout_alignBottom="@+id/function2_button"
-        android:layout_alignParentEnd="true" />
-
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="auto"
-        android:onClick="function2"
-        android:id="@+id/function2_button"
-        style="@style/Widget.AppCompat.Button.Borderless.Colored"
+        android:layout_gravity="center_horizontal"
         android:layout_alignBaseline="@+id/remote_control_button"
         android:layout_alignBottom="@+id/remote_control_button"
         android:layout_centerHorizontal="true" />
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="track"
+        android:onClick="function2"
+        android:id="@+id/function2_button"
+        style="@style/Widget.AppCompat.Button.Borderless.Colored"
+        android:layout_alignBaseline="@+id/function1_button"
+        android:layout_alignBottom="@+id/function1_button"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="20dp" />
 
 </RelativeLayout>

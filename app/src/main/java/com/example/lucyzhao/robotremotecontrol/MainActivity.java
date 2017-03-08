@@ -46,6 +46,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+
+
 public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_ENABLE_BT = 1;
@@ -56,12 +58,12 @@ public class MainActivity extends AppCompatActivity {
     private ConnectThread connectThread;
     protected ConnectedThread connectedThread;
     private static final String TAG = "MY_APP_DEBUG_TAG";
-    private Handler mHandler; // handler that gets info from Bluetooth service
     private Button function1Button;
     private Button remoteButton;
     private Button function2Button;
     private DialogFragment connectBTAlert;
     private boolean UNPAIRED = false;
+    private ProgressDialog connectionProgressDialog;
 
     // Create a BroadcastReceiver for ACTION_FOUND.
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
@@ -97,6 +99,34 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+
+   //gets info from connected thread
+    Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+
+            switch(msg.what) {
+                case MessageConstants.WHEEL_READING_LEFT:
+                    System.out.println("wheelSpeed left is " + msg.arg1);
+                    break;
+                case MessageConstants.WHEEL_READING_RIGHT:
+                    System.out.println("wheelSpeed right is " + msg.arg1);
+                    break;
+                case MessageConstants.CONNECTION_FAILURE:
+                    System.out.println("handling socket connection failure");
+                    AlertDialogFragment.newInstance("Socket connection failed.", false)
+                            .show(getFragmentManager(),"noConnectionDialog");
+                    disableModeButtons();
+                    break;
+                case MessageConstants.SOCKET_CONNECTION_SUCCEEDED:
+                    System.out.println("socket connection succeeded");
+                    connectionProgressDialog.dismiss();
+                    break;
+                default: System.out.println("invalid tag: "+msg.what);
+            }
+        }
+    };
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -217,13 +247,18 @@ public class MainActivity extends AppCompatActivity {
             BluetoothSocket tmp = null;
             mmDevice = device;
             try {
+                connectionProgressDialog = new ProgressDialog(MainActivity.this);
+                connectionProgressDialog.setMessage("connecting to bluetooth");
+                connectionProgressDialog.setCancelable(false);
+                connectionProgressDialog.show();
+
                 // Get a BluetoothSocket to connect with the given BluetoothDevice.
                 // MY_UUID is the app's UUID string, also used in the server code.
                 System.out.println("creating a socket");
                 tmp = device.createRfcommSocketToServiceRecord(UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"));
             } catch (IOException e) {
-                Log.e("IOException", "Socket's create() method failed", e);
-                Toast.makeText(getApplicationContext(),"socket create failed",Toast.LENGTH_SHORT).show();
+                connectionProgressDialog.dismiss();
+                AlertDialogFragment.newInstance("Socket creation failed", false).show(getFragmentManager(),"noConnectionDialog");
             }
             mmSocket = tmp;
         }
@@ -240,19 +275,9 @@ public class MainActivity extends AppCompatActivity {
 
             } catch (IOException connectException) {
                 // Unable to connect; close the socket and return.
-                //CRASH: create a handler for this thread
-          /*      new AlertDialog.Builder(getApplicationContext())
-                        .setTitle("Bluetooth Connection")
-                        .setIcon(R.drawable.alert_icon)
-                        .setMessage("No bluetooth connection")
-                        .setNegativeButton("CANCEL",
-                                new DialogInterface.OnClickListener() {
-                                    public void onClick(DialogInterface dialog, int whichButton) {
-                                        dialog.cancel();
-                                    }
-                                }
-                        )
-                        .create().show(); */
+                Message connectionFailed = mHandler.obtainMessage(MessageConstants.CONNECTION_FAILURE);
+                connectionFailed.sendToTarget();
+                connectionProgressDialog.dismiss();
                 System.out.println("unable to connect to socket");
                 try {
                     mmSocket.close();
@@ -279,25 +304,165 @@ public class MainActivity extends AppCompatActivity {
 
     private void manageMyConnectedSocket(BluetoothSocket mmSocket) {
         System.out.println("managing my connected socket");
+        mHandler.obtainMessage(MessageConstants.SOCKET_CONNECTION_SUCCEEDED).sendToTarget();
         connectedThread = new ConnectedThread(mmSocket);
         connectedThread.start();
     }
 
 
+    private interface ArduinoReadTags {
+        byte[] START_TAG_LEFT = "{".getBytes();
+        byte[] END_TAG_LEFT = "}".getBytes();
+        byte[] START_TAG_RIGHT = "[".getBytes();
+        byte[] END_TAG_RIGHT = "]".getBytes();
+    }
+
+    private interface ArduinoWriteTags {
+       String GO_FORWARD_CMD = "f";
+       String GO_BACKWARD_CMD = "b";
+       String TURN_LEFT_CMD = "l";
+       String TURN_RIGHT_CMD = "r";
+       String STOP_CMD = "s";
+       /*-------modes--------------*/
+       String FUNCTION_ONE = "1";
+       String FUNCTION_TWO = "2";
+       String REMOTE_CONTROL = "c";
+    }
+
     // Defines several constants used when transmitting messages between the
     // service and the UI.
     private interface MessageConstants {
-        public static final int MESSAGE_READ = 0;
-        public static final int MESSAGE_WRITE = 1;
-        public static final int MESSAGE_TOAST = 2;
-
-        // ... (Add other message types here as needed.)
+        int WHEEL_READING_LEFT = 0;
+        int WHEEL_READING_RIGHT = 1;
+        int CONNECTION_FAILURE = 2;
+        int SOCKET_CONNECTION_SUCCEEDED = 3;
     }
+
+    public class ConnectedThread extends Thread {
+        private static final String TAG = "ConnectedThread";
+        private final BluetoothSocket mmSocket;
+        private final InputStream mmInStream;
+        private final OutputStream mmOutStream;
+        private byte[] mmBuffer; // mmBuffer store for the stream
+
+
+        public ConnectedThread(BluetoothSocket socket) {
+            mmSocket = socket;
+            InputStream tmpIn = null;
+            OutputStream tmpOut = null;
+
+            // Get the input and output streams; using temp objects because
+            // member streams are final.
+            try {
+                tmpIn = socket.getInputStream();
+            } catch (IOException e) {
+                Log.e(TAG, "Error occurred when creating input stream", e);
+            }
+            try {
+                tmpOut = socket.getOutputStream();
+            } catch (IOException e) {
+                Log.e(TAG, "Error occurred when creating output stream", e);
+            }
+
+            mmInStream = tmpIn;
+            mmOutStream = tmpOut;
+        }
+
+        /**
+         * requires: bytes < mmBuffer.length
+         */
+        public void run() {
+            //mmBuffer = new byte[1024];
+            mmBuffer = new byte[1024];
+            int index = 0;
+            final int maxBytes = 5;
+            int bytes;
+            boolean foundStart_left = false;
+            boolean foundStart_right = false;
+            String result_left = "";
+            String result_right = "";
+            // Keep listening to the InputStream until an exception occurs.
+            while (true) {
+                try {
+                    // Read from the InputStream.
+                    bytes = mmInStream.read(mmBuffer, index, maxBytes);
+                    for(int i = index; i < index + bytes; i++){
+                    /*---------state for left wheel readings-----------*/
+                        if (mmBuffer[i] == ArduinoReadTags.END_TAG_LEFT[0]){
+                            System.out.println("left result is " + result_left);
+                            // Send the obtained bytes to the UI activity.
+                            Message readMsg = mHandler.obtainMessage(MessageConstants.WHEEL_READING_LEFT, Integer.parseInt(result_left));
+                            readMsg.sendToTarget();
+                            result_left = "";
+                            foundStart_left = false;
+                        }
+                        else if(foundStart_left) {
+                            result_left = result_left + (char) mmBuffer[i];
+                        }
+                        else if(mmBuffer[i] == ArduinoReadTags.START_TAG_LEFT[0]){
+                            foundStart_left = true;
+                        }
+                    /*---------state for right wheel readings-----------*/
+                        if (mmBuffer[i] == ArduinoReadTags.END_TAG_RIGHT[0]){
+                            System.out.println(" right result is " + result_right);
+                            Message readMsg = mHandler.obtainMessage(MessageConstants.WHEEL_READING_RIGHT, Integer.parseInt(result_right));
+                            readMsg.sendToTarget();
+                            result_right = "";
+                            foundStart_right = false;
+                        }
+                        else if(foundStart_right) {
+                            result_right = result_right + (char) mmBuffer[i];
+                        }
+                        else if(mmBuffer[i] == ArduinoReadTags.START_TAG_RIGHT[0]){
+                            foundStart_right = true;
+                        }
+                    }
+                    index = index + bytes;
+                    if(index >= mmBuffer.length - maxBytes ){
+                        index = 0;
+                    }
+
+
+                } catch (IOException e) {
+                    Log.d(TAG, "Input stream was disconnected", e);
+                    break;
+                }
+            }
+        }
+
+        public void writeMsg(String msg){
+            byte[] msgBytes = msg.getBytes();
+            write(msgBytes);
+        }
+
+        // Call this from the main activity to send data to the remote device.
+        private void write(byte[] bytes) {
+
+            try {
+                System.out.println("writing" + bytes);
+                mmOutStream.write(bytes);
+            } catch (IOException e) {
+                System.out.println("write exception" + bytes);
+                Log.e(TAG, "Error occurred when sending data", e);
+            }
+        }
+
+        // Call this method from the main activity to shut down the connection.
+        public void cancel() {
+            try {
+                mmSocket.close();
+            } catch (IOException e) {
+                Log.e(TAG, "Could not close the connect socket", e);
+            }
+        }
+    }
+
     public void function2(View view){
         function1Button.setBackgroundResource(0);
         function2Button.setBackgroundResource(R.drawable.dotted_shape);
         remoteButton.setBackgroundResource(0);
-        connectedThread.writeMsg("2");
+        
+        connectedThread.writeMsg(ArduinoWriteTags.FUNCTION_TWO);
         createFragment(new FunctionTwoFragment());
     }
 
@@ -306,14 +471,16 @@ public class MainActivity extends AppCompatActivity {
         function1Button.setBackgroundResource(R.drawable.dotted_shape);
         remoteButton.setBackgroundResource(0);
         function2Button.setBackgroundResource(0);
-        connectedThread.writeMsg("1");
+
+        connectedThread.writeMsg(ArduinoWriteTags.FUNCTION_ONE);
         createFragment(new FunctionOneFragment());
     }
     public void remoteControl(View view){
         remoteButton.setBackgroundResource(R.drawable.dotted_shape);
         function1Button.setBackgroundResource(0);
         function2Button.setBackgroundResource(0);
-        connectedThread.writeMsg("c");
+
+        connectedThread.writeMsg(ArduinoWriteTags.REMOTE_CONTROL);
         createFragment(new RemoteControlFragment());
     }
 
@@ -352,6 +519,7 @@ public class MainActivity extends AppCompatActivity {
          private ImageView leftButton;
          private ImageView rightButton;
 
+
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
@@ -367,12 +535,12 @@ public class MainActivity extends AppCompatActivity {
                     if(motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
                         System.out.println("forward down");
                         forwardButton.setColorFilter(R.color.colorAccent);
-                        ((MainActivity) getActivity()).connectedThread.writeMsg("f");
+                        ((MainActivity) getActivity()).connectedThread.writeMsg(ArduinoWriteTags.GO_FORWARD_CMD);
                     }
                     if(motionEvent.getAction() == MotionEvent.ACTION_UP) {
                         System.out.println("forward up");
                         forwardButton.clearColorFilter();
-                        ((MainActivity) getActivity()).connectedThread.writeMsg("s");
+                        ((MainActivity) getActivity()).connectedThread.writeMsg(ArduinoWriteTags.STOP_CMD);
                     }
                     return true;
                 }
@@ -383,12 +551,12 @@ public class MainActivity extends AppCompatActivity {
                     if(motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
                         System.out.println("right down");
                         rightButton.setColorFilter(R.color.colorAccent);
-                        ((MainActivity) getActivity()).connectedThread.writeMsg("r");
+                        ((MainActivity) getActivity()).connectedThread.writeMsg(ArduinoWriteTags.TURN_RIGHT_CMD);
                     }
                     if(motionEvent.getAction() == MotionEvent.ACTION_UP) {
                         System.out.println("forward up");
                         rightButton.clearColorFilter();
-                        ((MainActivity) getActivity()).connectedThread.writeMsg("s");
+                        ((MainActivity) getActivity()).connectedThread.writeMsg(ArduinoWriteTags.STOP_CMD);
                     }
                     return true;
                 }
@@ -399,12 +567,12 @@ public class MainActivity extends AppCompatActivity {
                     if(motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
                         System.out.println("backward down");
                         backwardButton.setColorFilter(R.color.colorAccent);
-                        ((MainActivity) getActivity()).connectedThread.writeMsg("b");
+                        ((MainActivity) getActivity()).connectedThread.writeMsg(ArduinoWriteTags.GO_BACKWARD_CMD);
                     }
                     if(motionEvent.getAction() == MotionEvent.ACTION_UP) {
                         System.out.println("forward up");
                         backwardButton.clearColorFilter();
-                        ((MainActivity) getActivity()).connectedThread.writeMsg("s");
+                        ((MainActivity) getActivity()).connectedThread.writeMsg(ArduinoWriteTags.STOP_CMD);
                     }
                     return true;
                 }
@@ -415,12 +583,12 @@ public class MainActivity extends AppCompatActivity {
                     if(motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
                         System.out.println("left down");
                         leftButton.setColorFilter(R.color.colorAccent);
-                        ((MainActivity) getActivity()).connectedThread.writeMsg("l");
+                        ((MainActivity) getActivity()).connectedThread.writeMsg(ArduinoWriteTags.TURN_LEFT_CMD);
                     }
                     if(motionEvent.getAction() == MotionEvent.ACTION_UP) {
                         System.out.println("forward up");
                         leftButton.clearColorFilter();
-                        ((MainActivity) getActivity()).connectedThread.writeMsg("s");
+                        ((MainActivity) getActivity()).connectedThread.writeMsg(ArduinoWriteTags.STOP_CMD);
                     }
                     return true;
                 }
@@ -432,8 +600,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void showAlertDialog() {
-        connectBTAlert = new AlertDialogFragment();
-        connectBTAlert.show(getFragmentManager(), "dialog");
+        connectBTAlert = AlertDialogFragment.newInstance("Connect to bluetooth?",true);
+        connectBTAlert.show(getFragmentManager(),"dialog");
     }
 
     public void doPositiveClick() {
@@ -442,19 +610,27 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void doNegativeClick() {
-        Toast.makeText(getApplicationContext(),"NO BLUETOOTH CONNECTION",Toast.LENGTH_SHORT).show();
         connectBTAlert.dismiss();
+        AlertDialogFragment.newInstance("No bluetooth connection", false)
+                .show(getFragmentManager(),"noBTConnection");
+        disableModeButtons();
         System.out.println("Negative click!");
+    }
+
+    private void disableModeButtons(){
+        function1Button.setClickable(false);
+        function2Button.setClickable(false);
+        remoteButton.setClickable(false);
     }
 
     public static class AlertDialogFragment extends DialogFragment {
 
-        public static AlertDialogFragment newInstance(String title, String msg, boolean posButton) {
+        public static AlertDialogFragment newInstance(String msg, boolean initConnection) {
             AlertDialogFragment frag = new AlertDialogFragment();
             Bundle args = new Bundle();
-            args.putString("title", title);
+         //   args.putString("title", title);
             args.putString("message", msg);
-            args.putBoolean("posButton", posButton);
+            args.putBoolean("initConnection", initConnection);
             frag.setArguments(args);
             return frag;
         }
@@ -462,27 +638,39 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
+         //   String title = getArguments().getString("title");
+            String message = getArguments().getString("message");
+            boolean initConnection = getArguments().getBoolean("initConnection");
 
-
-            return new AlertDialog.Builder(getActivity())
-                    .setTitle("Bluetooth Connection")
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity())
+                    .setTitle("  Bluetooth Connection")
                     .setIcon(R.drawable.alert_icon)
-                    .setMessage("Connect to bluetooth?")
-                    .setPositiveButton("OK",
-                            new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog, int whichButton) {
-                                    ((MainActivity)getActivity()).doPositiveClick();
-                                }
+                    .setMessage(message);
+            if(initConnection) {
+                return builder.setPositiveButton("OK",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                ((MainActivity) getActivity()).doPositiveClick();
                             }
-                    )
-                    .setNegativeButton("CANCEL",
-                            new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog, int whichButton) {
-                                    ((MainActivity)getActivity()).doNegativeClick();
+                        }
+                        )
+                        .setNegativeButton("CANCEL",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int whichButton) {
+                                        ((MainActivity) getActivity()).doNegativeClick();
+                                    }
                                 }
-                            }
-                    )
-                    .create();
+                        )
+                        .create();
+            }
+            else {
+                return builder.setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dismiss();
+                    }
+                }).create();
+            }
         }
     }
 
