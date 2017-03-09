@@ -56,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothDevice robotBluetooth = null;
     private static final String ROBOT_NAME = "HC-06";
-    private static final String ROBOT_MAC_ADDRESS = "00:21:13:00:46:44";
+    private static final String ROBOT_MAC_ADDRESS = "00:21:13:00:47:09";//"00:21:13:00:46:44";
     private ConnectThread connectThread;
     protected ConnectedThread connectedThread;
     private static final String TAG = "MY_APP_DEBUG_TAG";
@@ -67,10 +67,11 @@ public class MainActivity extends AppCompatActivity {
     private TextView BTprompt;
     private TextView leftWheelSpeed;
     private DialogFragment connectBTAlert;
-    private DialogFragment deviceDisconnected;
+ /*   private DialogFragment deviceDisconnected;
     private DialogFragment noBTconnection;
     private DialogFragment socketCreationFailed;
-    private DialogFragment socketConnectFailed;
+    private DialogFragment socketConnectFailed; */
+    private ArrayList<DialogFragment> dialogFragmentArray = new ArrayList<DialogFragment>();
     private boolean UNPAIRED = false;
     private ProgressDialog connectionProgressDialog;
 
@@ -82,12 +83,15 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+
                 // Discovery has found a device. Get the BluetoothDevice
                 // object and its info from the Intent.
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 String deviceName = device.getName();
-                //String deviceHardwareAddress = device.getAddress(); // MAC address
-                if(deviceName.equals(ROBOT_NAME)) {
+                System.out.println("in action found, device name is: " + deviceName );
+                String deviceHardwareAddress = device.getAddress(); // MAC address
+                System.out.println("device addr is: " + deviceHardwareAddress);
+                if(deviceHardwareAddress.equals(ROBOT_MAC_ADDRESS) && deviceName.equals(ROBOT_NAME)) {
                     robotBluetooth = device;
                 }
             }
@@ -109,8 +113,9 @@ public class MainActivity extends AppCompatActivity {
             }
             else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)){
                 System.out.println("device disconnected");
-                deviceDisconnected = AlertDialogFragment.newInstance("Device disconnected",false);
+                DialogFragment deviceDisconnected = AlertDialogFragment.newInstance("Device disconnected",false);
                 deviceDisconnected.show(getFragmentManager(),"noBTconnection");
+                dialogFragmentArray.add(deviceDisconnected);
             }
         }
     };
@@ -130,13 +135,16 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 case MessageConstants.CONNECTION_FAILURE:
                     System.out.println("handling socket connection failure");
-                    socketConnectFailed = AlertDialogFragment.newInstance("Socket connection failed", false);
+                    DialogFragment socketConnectFailed = AlertDialogFragment.newInstance("Socket connection failed", false);
                     socketConnectFailed.show(getFragmentManager(),"noConnectionDialog");
+                    dialogFragmentArray.add(socketConnectFailed);
                     disableModeButtons();
                     break;
                 case MessageConstants.SOCKET_CONNECTION_SUCCEEDED:
                     System.out.println("socket connection succeeded");
                     connectionProgressDialog.dismiss();
+                    enableModeButton();
+                    Toast.makeText(getApplicationContext(),"socket connection succeeded",Toast.LENGTH_SHORT).show();
 
                     IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_ACL_DISCONNECTED);
                     registerReceiver(mReceiver, filter);
@@ -225,7 +233,8 @@ public class MainActivity extends AppCompatActivity {
                 String deviceName = device.getName();
                 System.out.println("paired with: " + deviceName);
                 String deviceHardwareAddress = device.getAddress(); // MAC address
-                if(deviceHardwareAddress.equals(ROBOT_MAC_ADDRESS)) {
+                System.out.println("hardware address is:" + deviceHardwareAddress);
+                if(deviceHardwareAddress.equals(ROBOT_MAC_ADDRESS) && deviceName.equals(ROBOT_NAME)) {
                     robotBluetooth = device;
                     break;
                 }
@@ -234,6 +243,7 @@ public class MainActivity extends AppCompatActivity {
         if (robotBluetooth == null) {
             UNPAIRED = true;
             // Register for broadcasts
+            System.out.println("robot bluetooth is null");
             IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
             registerReceiver(mReceiver, filter);
             filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
@@ -271,11 +281,16 @@ public class MainActivity extends AppCompatActivity {
             unregisterReceiver(mReceiver);
         }
         //TODO: USE AN ARRAYLIST TO MANAGE ALL INSTANTIATED ALERTS
-        if(connectBTAlert != null) {connectBTAlert.dismiss();}
+  /*      if(connectBTAlert != null) {connectBTAlert.dismiss();}
         if(noBTconnection != null) {noBTconnection.dismiss();}
         if(socketCreationFailed != null) {socketCreationFailed.dismiss();}
         if(socketConnectFailed != null) {socketConnectFailed.dismiss();}
-        if(deviceDisconnected != null) {deviceDisconnected.dismiss();}
+        if(deviceDisconnected != null) {deviceDisconnected.dismiss();} */
+        for(DialogFragment dialogFragment : dialogFragmentArray){
+            if(dialogFragment != null) {
+                dialogFragment.dismiss();
+            }
+        }
 
         if(connectThread != null) {connectThread.cancel();}
         if(connectedThread != null) {connectedThread.cancel();}
@@ -332,8 +347,9 @@ public class MainActivity extends AppCompatActivity {
                 tmp = device.createRfcommSocketToServiceRecord(UUID.fromString(UUID_STRING));
             } catch (IOException e) {
                 connectionProgressDialog.dismiss();
-                socketCreationFailed = AlertDialogFragment.newInstance("Socket creation failed", false);
+                DialogFragment socketCreationFailed = AlertDialogFragment.newInstance("Socket creation failed", false);
                 socketCreationFailed.show(getFragmentManager(),"noConnectionDialog");
+                dialogFragmentArray.add(socketCreationFailed);
             }
             mmSocket = tmp;
         }
@@ -584,7 +600,7 @@ public class MainActivity extends AppCompatActivity {
                         ((MainActivity) getActivity()).connectedThread.writeMsg(ArduinoWriteTags.GO_FORWARD_CMD);
                     }
                     if(motionEvent.getAction() == MotionEvent.ACTION_UP) {
-                        System.out.println("forward up");
+                        System.out.println("STOP COMMAND");
                         forwardButton.clearColorFilter();
                         ((MainActivity) getActivity()).connectedThread.writeMsg(ArduinoWriteTags.STOP_CMD);
                     }
@@ -649,6 +665,7 @@ public class MainActivity extends AppCompatActivity {
         setBTpromptVisibility(View.INVISIBLE);
         connectBTAlert = AlertDialogFragment.newInstance("Connect to bluetooth?",true);
         connectBTAlert.show(getFragmentManager(),"dialog");
+        dialogFragmentArray.add(connectBTAlert);
     }
 
     public void doPositiveClick() {
@@ -658,8 +675,9 @@ public class MainActivity extends AppCompatActivity {
 
     public void doNegativeClick() {
         connectBTAlert.dismiss();
-        noBTconnection = AlertDialogFragment.newInstance("No bluetooth connection", false);
+        DialogFragment noBTconnection = AlertDialogFragment.newInstance("No bluetooth connection", false);
         noBTconnection.show(getFragmentManager(),"noBTConnection");
+        dialogFragmentArray.add(noBTconnection);
         disableModeButtons();
         System.out.println("Negative click!");
     }
@@ -668,6 +686,12 @@ public class MainActivity extends AppCompatActivity {
         function1Button.setClickable(false);
         function2Button.setClickable(false);
         remoteButton.setClickable(false);
+    }
+
+    private void enableModeButton(){
+        function1Button.setClickable(true);
+        function2Button.setClickable(true);
+        remoteButton.setClickable(true);
     }
 
     public static class AlertDialogFragment extends DialogFragment {
