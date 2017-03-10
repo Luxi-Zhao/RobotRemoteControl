@@ -5,15 +5,15 @@
     android:layout_marginTop="100dp"
     android:layout_marginBottom="20dp"
     android:id="@+id/function_two"
-    android:background="@color/colorPrimary"
+    android:background="#b2c7bfbf"
     >
 
     <ImageView
-        android:layout_width="300dp"
-        android:layout_height="300dp"
+        android:layout_width="250dp"
+        android:layout_height="250dp"
         android:layout_gravity="center"
-        android:id="@+id/forward_button"
-        android:src="@drawable/track"
+        android:id="@+id/cleaning_robot"
+        android:src="@drawable/robot_cleaning"
       />
 
 

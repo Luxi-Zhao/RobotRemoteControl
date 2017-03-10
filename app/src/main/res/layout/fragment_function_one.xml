@@ -1,33 +1,98 @@
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="400dp"
+    android:layout_height="350dp"
     android:layout_marginTop="100dp"
     android:layout_marginBottom="20dp"
     android:id="@+id/function_one"
-    android:background="@android:color/holo_blue_dark"
+    android:background="#cae9a989"
     >
 
-    <ImageView
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:layout_gravity="center"
-        android:id="@+id/forward_button"
-        android:src="@drawable/car"
-      />
-
-    <TextView
-        android:text="Left Wheel RPM: "
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/left_wheel_tag" />
 
     <TextView
         android:text="no reading"
+        android:fontFamily="sans-serif-condensed"
+        android:textSize="18sp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="30dp"
-        android:id="@+id/left_wheel_speed" />
+        android:id="@+id/left_wheel_speed"
+        android:layout_marginBottom="10dp"
+        android:layout_alignBottom="@+id/left_wheel_tag"
+        android:layout_toEndOf="@+id/left_wheel_tag"
+        android:layout_marginStart="12dp" />
+
+    <ImageView
+        android:src="@drawable/r_wheel_speed_tag"
+        android:layout_width="155dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/right_wheel_tag"
+        android:layout_below="@+id/left_wheel_tag"
+        android:layout_alignStart="@+id/left_wheel_tag" />
+
+    <TextView
+        android:text="no reading"
+        android:fontFamily="sans-serif-condensed"
+        android:textSize="18sp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/right_wheel_speed"
+        android:layout_marginBottom="10dp"
+        android:layout_alignBottom="@+id/right_wheel_tag"
+        android:layout_toEndOf="@+id/right_wheel_tag"
+        android:layout_marginStart="12dp" />
+
+    <ImageView
+        android:src="@drawable/rpm_tag"
+        android:layout_width="45dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/rpm_tag"
+        android:layout_alignStart="@+id/rpm_tag" />
+
+    <TextView
+        android:text="no info"
+        android:fontFamily="sans-serif-condensed"
+        android:textSize="18sp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/state_msg"
+        android:layout_alignBottom="@+id/state_tag"
+        android:layout_marginBottom="10dp"
+        android:layout_toEndOf="@+id/state_tag"
+        android:layout_marginStart="12dp"/>
+
+    <ImageView
+        android:src="@drawable/state_tag"
+        android:layout_width="60dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/state_tag"
+        android:layout_below="@+id/right_wheel_tag"
+        android:layout_alignStart="@+id/right_wheel_tag" />
+
+    <ImageView
+        android:src="@drawable/car"
+        android:layout_width="60dp"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/state_msg"
+        android:layout_centerHorizontal="true" />
+
+    <ImageView
+        android:src="@drawable/rpm_tag"
+        android:layout_width="45dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/rpm_tag"
+        android:layout_alignTop="@+id/left_wheel_tag"
+        android:layout_toEndOf="@+id/left_wheel_speed"
+        android:layout_marginStart="11dp" />
+
+    <ImageView
+        android:src="@drawable/l_wheel_speed_tag"
+        android:layout_width="155dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="41dp"
+        android:id="@+id/left_wheel_tag"
+        android:layout_marginStart="19dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true" />
 
 
-</FrameLayout>
+</RelativeLayout>

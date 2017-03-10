@@ -10,40 +10,6 @@
     tools:context="com.example.lucyzhao.robotremotecontrol.MainActivity">
 
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="manual"
-        android:onClick="remoteControl"
-        android:id="@+id/remote_control_button"
-        android:layout_marginTop="40dp"
-        android:layout_marginStart="20dp"
-        style="@style/Widget.AppCompat.Button.Borderless.Colored" />
-
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="auto"
-        android:onClick="function1"
-        android:id="@+id/function1_button"
-        style="@style/Widget.AppCompat.Button.Borderless.Colored"
-        android:layout_gravity="center_horizontal"
-        android:layout_alignBaseline="@+id/remote_control_button"
-        android:layout_alignBottom="@+id/remote_control_button"
-        android:layout_centerHorizontal="true" />
-
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="track"
-        android:onClick="function2"
-        android:id="@+id/function2_button"
-        style="@style/Widget.AppCompat.Button.Borderless.Colored"
-        android:layout_alignBaseline="@+id/function1_button"
-        android:layout_alignBottom="@+id/function1_button"
-        android:layout_alignParentEnd="true"
-        android:layout_marginEnd="20dp" />
-
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -64,4 +30,49 @@
         android:id="@+id/BT_connection_switch"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="track"
+        android:onClick="function2"
+        android:id="@+id/function2_button"
+        style="@style/Widget.AppCompat.Button.Borderless.Colored"
+        android:layout_alignBaseline="@+id/function1_button"
+        android:layout_alignBottom="@+id/function1_button"
+        android:layout_alignParentEnd="true" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="auto"
+        android:onClick="function1"
+        android:id="@+id/function1_button"
+        style="@style/Widget.AppCompat.Button.Borderless.Colored"
+        android:layout_alignBaseline="@+id/remote_control_button"
+        android:layout_alignBottom="@+id/remote_control_button"
+        android:layout_toEndOf="@+id/remote_control_button"
+        android:layout_marginEnd="50dp"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="clean"
+        android:onClick="cleaning"
+        android:id="@+id/cleaning_robot_button"
+        style="@style/Widget.AppCompat.Button.Borderless.Colored"
+        android:layout_gravity="center_horizontal"
+        android:layout_alignBottom="@+id/remote_control_button"
+        android:layout_marginStart="160dp" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="manual"
+        android:onClick="remoteControl"
+        android:id="@+id/remote_control_button"
+        style="@style/Widget.AppCompat.Button.Borderless.Colored"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="10dp" />
 </RelativeLayout>

@@ -1,27 +1,12 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="400dp"
+    android:layout_height="350dp"
     android:layout_marginTop="100dp"
-    android:background="@android:color/transparent"
+    android:background="#dbc2e2e8"
     android:id="@+id/remote_control"
     >
 
-    <ImageView
-        android:layout_width="130dp"
-        android:layout_height="130dp"
-        android:layout_marginTop="50dp"
-        android:id="@+id/forward_button"
-        android:src="@drawable/button_up"
-        android:layout_gravity="center_horizontal"/>
-
-    <ImageView
-        android:layout_width="130dp"
-        android:layout_height="130dp"
-        android:layout_marginTop="220dp"
-        android:id="@+id/backward_button"
-        android:src="@drawable/button_down"
-        android:layout_gravity="center_horizontal"/>
     <ImageView
         android:layout_width="130dp"
         android:layout_height="130dp"
@@ -39,6 +24,41 @@
        />
 
 
+
+    <ToggleButton
+        android:text="ToggleButton"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:background="@drawable/blue_circle"
+        android:layout_gravity="center"
+        android:textColor="@color/colorAccent"
+        android:textOff="UP"
+        android:textOn="DOWN"
+        android:id="@+id/up_down_button" />
+
+    <ImageView
+        android:layout_width="130dp"
+        android:layout_height="130dp"
+        android:layout_marginTop="25dp"
+        android:id="@+id/forward_button"
+        android:src="@drawable/button_up"
+        android:layout_gravity="center_horizontal"/>
+
+    <ImageView
+        android:layout_width="130dp"
+        android:layout_height="130dp"
+        android:layout_marginTop="195dp"
+        android:id="@+id/backward_button"
+        android:src="@drawable/button_down"
+        android:layout_gravity="center_horizontal"/>
+
+    <ImageView
+        android:layout_width="130dp"
+        android:layout_height="130dp"
+        android:layout_marginTop="265dp"
+        android:id="@+id/drawing_tag"
+        android:src="@drawable/drawing_tag"
+        android:layout_marginStart="20dp"/>
 
 
 </FrameLayout>

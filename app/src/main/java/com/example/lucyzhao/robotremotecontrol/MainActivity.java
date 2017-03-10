@@ -38,6 +38,9 @@ import android.widget.ImageView;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
+
+import org.w3c.dom.Text;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -63,14 +66,13 @@ public class MainActivity extends AppCompatActivity {
     private Button function1Button;
     private Button function2Button;
     private Button remoteButton;
+    private Button cleaningButton;
+    private Fragment functionOneFragment;
     private Switch BTSwitch;
     private TextView BTprompt;
-    private TextView leftWheelSpeed;
+
     private DialogFragment connectBTAlert;
- /*   private DialogFragment deviceDisconnected;
-    private DialogFragment noBTconnection;
-    private DialogFragment socketCreationFailed;
-    private DialogFragment socketConnectFailed; */
+
     private ArrayList<DialogFragment> dialogFragmentArray = new ArrayList<DialogFragment>();
     private boolean UNPAIRED = false;
     private ProgressDialog connectionProgressDialog;
@@ -128,13 +130,24 @@ public class MainActivity extends AppCompatActivity {
             switch(msg.what) {
                 case MessageConstants.WHEEL_READING_LEFT:
                     System.out.println("wheelSpeed left is " + msg.obj);
-                    leftWheelSpeed.setText((String)msg.obj);
+                    if(functionOneFragment.getActivity() != null) {
+                        TextView leftWheelSpeed = (TextView) functionOneFragment.getActivity().findViewById(R.id.left_wheel_speed);
+                        leftWheelSpeed.setText((String) msg.obj);
+                    }
                     break;
                 case MessageConstants.WHEEL_READING_RIGHT:
                     System.out.println("wheelSpeed right is " + msg.obj);
+                    if(functionOneFragment.getActivity() != null) {
+                        TextView rightWheelSpeed = (TextView) functionOneFragment.getActivity().findViewById(R.id.right_wheel_speed);
+                        rightWheelSpeed.setText((String) msg.obj);
+                    }
                     break;
                 case MessageConstants.FUNCTION_1_STATE:
                     System.out.println("function 1 state is " + msg.obj);
+                    if(functionOneFragment.getActivity() != null) {
+                        TextView stateMsg = (TextView) functionOneFragment.getActivity().findViewById(R.id.state_msg);
+                        stateMsg.setText((String) msg.obj);
+                    }
                     break;
                 case MessageConstants.CONNECTION_FAILURE:
                     System.out.println("handling socket connection failure");
@@ -173,10 +186,14 @@ public class MainActivity extends AppCompatActivity {
         String TURN_LEFT_CMD = "l";
         String TURN_RIGHT_CMD = "r";
         String STOP_CMD = "s";
+        String PEN_UP_CMD = "u";
+        String PEN_DOWN_CMD = "d";
+
         /*-------modes--------------*/
         String FUNCTION_ONE = "1";
         String FUNCTION_TWO = "2";
         String REMOTE_CONTROL = "c";
+        String CLEANING = "e";
     }
 
     // Defines several constants used when transmitting messages between the
@@ -198,6 +215,8 @@ public class MainActivity extends AppCompatActivity {
         remoteButton = (Button) findViewById(R.id.remote_control_button);
         function1Button = (Button) findViewById(R.id.function1_button);
         function2Button = (Button) findViewById(R.id.function2_button);
+        cleaningButton = (Button) findViewById(R.id.cleaning_robot_button);
+
         BTSwitch = (Switch) findViewById(R.id.BT_connection_switch);
         BTprompt = (TextView) findViewById(R.id.BT_connection_prompt);
 
@@ -211,7 +230,6 @@ public class MainActivity extends AppCompatActivity {
         });
         setBTpromptVisibility(View.INVISIBLE);
 
-        leftWheelSpeed = (TextView) findViewById(R.id.left_wheel_speed);
     }
 
     public void enableBluetooth(){
@@ -451,7 +469,7 @@ public class MainActivity extends AppCompatActivity {
          * @param messageConstant the message constant to use when sending information to Handler
          */
         private void readIncomingData(int i, int endTag, int startTag, int messageConstant){
-            if (mmBuffer[i] == ArduinoReadTags.END_TAG_LEFT[0]){
+            if (mmBuffer[i] == endTag){
                 System.out.println("result is" + result_strings[messageConstant]);
                 // Send the obtained bytes to the UI activity.
                 //Message readMsg = mHandler.obtainMessage(messageConstant, Integer.parseInt(result_strings[messageConstant]));
@@ -464,7 +482,7 @@ public class MainActivity extends AppCompatActivity {
             else if(foundStart_array[messageConstant]) {
                 result_strings[messageConstant] = result_strings[messageConstant] + (char) mmBuffer[i];
             }
-            else if(mmBuffer[i] == ArduinoReadTags.START_TAG_LEFT[0]){
+            else if(mmBuffer[i] == startTag){
                 foundStart_array[messageConstant] = true;
             }
         }
@@ -536,6 +554,7 @@ public class MainActivity extends AppCompatActivity {
         function1Button.setBackgroundResource(0);
         function2Button.setBackgroundResource(R.drawable.dotted_shape);
         remoteButton.setBackgroundResource(0);
+        cleaningButton.setBackgroundResource(0);
         
         connectedThread.writeMsg(ArduinoWriteTags.FUNCTION_TWO);
         createFragment(new FunctionTwoFragment());
@@ -546,19 +565,31 @@ public class MainActivity extends AppCompatActivity {
         function1Button.setBackgroundResource(R.drawable.dotted_shape);
         remoteButton.setBackgroundResource(0);
         function2Button.setBackgroundResource(0);
+        cleaningButton.setBackgroundResource(0);
 
         connectedThread.writeMsg(ArduinoWriteTags.FUNCTION_ONE);
-        createFragment(new FunctionOneFragment());
+        functionOneFragment = new FunctionOneFragment();
+        createFragment(functionOneFragment);
     }
     public void remoteControl(View view){
         remoteButton.setBackgroundResource(R.drawable.dotted_shape);
         function1Button.setBackgroundResource(0);
         function2Button.setBackgroundResource(0);
+        cleaningButton.setBackgroundResource(0);
 
         connectedThread.writeMsg(ArduinoWriteTags.REMOTE_CONTROL);
         createFragment(new RemoteControlFragment());
     }
+    public void cleaning(View view){
+        cleaningButton.setBackgroundResource(R.drawable.dotted_shape);
+        function1Button.setBackgroundResource(0);
+        function2Button.setBackgroundResource(0);
+        remoteButton.setBackgroundResource(0);
 
+        connectedThread.writeMsg(ArduinoWriteTags.CLEANING);
+        createFragment(new CleaningRobotFragment());
+
+    }
     private void createFragment(Fragment fragment) {
         fragment.setEnterTransition(new Slide(Gravity.RIGHT));
         fragment.setExitTransition(new Slide(Gravity.LEFT));
@@ -570,13 +601,20 @@ public class MainActivity extends AppCompatActivity {
         transaction.commit();
     }
 
-
+    public static class CleaningRobotFragment extends Fragment {
+        @Override
+        public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                                 Bundle savedInstanceState){
+            return inflater.inflate(R.layout.fragment_cleaning_robot, container, false);
+        }
+    }
 
      public static class FunctionOneFragment extends Fragment {
          @Override
          public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                   Bundle savedInstanceState){
-             return inflater.inflate(R.layout.fragment_function_one, container, false);
+             View fragmentView = inflater.inflate(R.layout.fragment_function_one, container, false);
+             return fragmentView;
          }
      }
 
@@ -593,7 +631,7 @@ public class MainActivity extends AppCompatActivity {
          private ImageView backwardButton;
          private ImageView leftButton;
          private ImageView rightButton;
-
+         private ToggleButton penUpDownButton;
 
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -603,6 +641,7 @@ public class MainActivity extends AppCompatActivity {
             backwardButton= (ImageView) fragmentView.findViewById(R.id.backward_button);
             leftButton = (ImageView) fragmentView.findViewById(R.id.left_button);
             rightButton = (ImageView) fragmentView.findViewById(R.id.right_button);
+            penUpDownButton = (ToggleButton) fragmentView.findViewById(R.id.up_down_button);
 
             forwardButton.setOnTouchListener(new View.OnTouchListener(){
                 @Override
@@ -668,6 +707,15 @@ public class MainActivity extends AppCompatActivity {
                     return true;
                 }
             });
+            penUpDownButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    if(isChecked){
+                        ((MainActivity) getActivity()).connectedThread.writeMsg(ArduinoWriteTags.PEN_DOWN_CMD);
+                    }
+                    else ((MainActivity) getActivity()).connectedThread.writeMsg(ArduinoWriteTags.PEN_UP_CMD);
+                }
+            });
 
             // Inflate the layout for this fragment
             return fragmentView;
@@ -699,12 +747,14 @@ public class MainActivity extends AppCompatActivity {
         function1Button.setClickable(false);
         function2Button.setClickable(false);
         remoteButton.setClickable(false);
+        cleaningButton.setClickable(false);
     }
 
     private void enableModeButton(){
         function1Button.setClickable(true);
         function2Button.setClickable(true);
         remoteButton.setClickable(true);
+        cleaningButton.setClickable(true);
     }
 
     public static class AlertDialogFragment extends DialogFragment {
