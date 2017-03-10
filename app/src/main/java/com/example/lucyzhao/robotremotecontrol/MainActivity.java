@@ -179,8 +179,9 @@ public class MainActivity extends AppCompatActivity {
     private interface MessageConstants {
         int WHEEL_READING_LEFT = 0;
         int WHEEL_READING_RIGHT = 1;
-        int CONNECTION_FAILURE = 2;
-        int SOCKET_CONNECTION_SUCCEEDED = 3;
+        int FUNCTION_1_STATE = 2;
+        int CONNECTION_FAILURE = 3;
+        int SOCKET_CONNECTION_SUCCEEDED = 4;
     }
 
 
@@ -280,12 +281,7 @@ public class MainActivity extends AppCompatActivity {
             // Don't forget to unregister the ACTION_FOUND receiver.
             unregisterReceiver(mReceiver);
         }
-        //TODO: USE AN ARRAYLIST TO MANAGE ALL INSTANTIATED ALERTS
-  /*      if(connectBTAlert != null) {connectBTAlert.dismiss();}
-        if(noBTconnection != null) {noBTconnection.dismiss();}
-        if(socketCreationFailed != null) {socketCreationFailed.dismiss();}
-        if(socketConnectFailed != null) {socketConnectFailed.dismiss();}
-        if(deviceDisconnected != null) {deviceDisconnected.dismiss();} */
+        //TODO: ADD ALL FRAGMENTS TO ARRAY AT THE TIME OF THEIR INSTANTIATION
         for(DialogFragment dialogFragment : dialogFragmentArray){
             if(dialogFragment != null) {
                 dialogFragment.dismiss();
@@ -407,6 +403,9 @@ public class MainActivity extends AppCompatActivity {
         private final OutputStream mmOutStream;
         private byte[] mmBuffer; // mmBuffer store for the stream
 
+        String[] result_strings = new String[3];
+        boolean[] foundStart_array = new boolean[3];
+
 
         public ConnectedThread(BluetoothSocket socket) {
             mmSocket = socket;
@@ -428,8 +427,40 @@ public class MainActivity extends AppCompatActivity {
 
             mmInStream = tmpIn;
             mmOutStream = tmpOut;
+
+            /* Initialize the arrays used for reading */
+            for(String string : result_strings){
+                string = "";
+            }
+            for(boolean foundStart : foundStart_array){
+                foundStart = false;
+            }
         }
 
+
+        /**
+         * Check which type of information the incoming data belongs to and process it accordingly
+         * @param i the buffer index the data is at
+         * @param endTag the endTag that we want to check
+         * @param startTag the startTag that we want to check
+         * @param messageConstant the message constant to use when sending information to Handler
+         */
+        private void readIncomingData(int i, int endTag, int startTag, int messageConstant){
+            if (mmBuffer[i] == ArduinoReadTags.END_TAG_LEFT[0]){
+                System.out.println("result is" + result_strings[messageConstant]);
+                // Send the obtained bytes to the UI activity.
+                Message readMsg = mHandler.obtainMessage(messageConstant, Integer.parseInt(result_strings[messageConstant]));
+                readMsg.sendToTarget();
+                result_strings[messageConstant] = "";
+                foundStart_array[messageConstant] = false;
+            }
+            else if(foundStart_array[messageConstant]) {
+                result_strings[messageConstant] = result_strings[messageConstant] + (char) mmBuffer[i];
+            }
+            else if(mmBuffer[i] == ArduinoReadTags.START_TAG_LEFT[0]){
+                foundStart_array[messageConstant] = true;
+            }
+        }
         /**
          * requires: bytes < mmBuffer.length
          */
@@ -443,12 +474,14 @@ public class MainActivity extends AppCompatActivity {
             boolean foundStart_right = false;
             String result_left = "";
             String result_right = "";
+
             // Keep listening to the InputStream until an exception occurs.
             while (true) {
                 try {
                     // Read from the InputStream.
                     bytes = mmInStream.read(mmBuffer, index, maxBytes);
                     for(int i = index; i < index + bytes; i++){
+                        //TODO CONDENSE THIS INTO ONE FUNCTION
                     /*---------state for left wheel readings-----------*/
                         if (mmBuffer[i] == ArduinoReadTags.END_TAG_LEFT[0]){
                             System.out.println("left result is " + result_left);
