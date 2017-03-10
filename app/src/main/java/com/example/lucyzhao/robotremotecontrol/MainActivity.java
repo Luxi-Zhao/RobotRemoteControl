@@ -132,6 +132,7 @@ public class MainActivity extends AppCompatActivity {
                     System.out.println("wheelSpeed left is " + msg.obj);
                     if(functionOneFragment.getActivity() != null) {
                         TextView leftWheelSpeed = (TextView) functionOneFragment.getActivity().findViewById(R.id.left_wheel_speed);
+                     //   String leftReading = (String) msg.obj;
                         leftWheelSpeed.setText((String) msg.obj);
                     }
                     break;
@@ -188,6 +189,9 @@ public class MainActivity extends AppCompatActivity {
         String STOP_CMD = "s";
         String PEN_UP_CMD = "u";
         String PEN_DOWN_CMD = "d";
+        String DRAW_CIRCLE_CMD = "i";
+        String DRAW_REC_CMD = "t";
+        String DRAW_TRIANGLE_CMD = "z";
 
         /*-------modes--------------*/
         String FUNCTION_ONE = "1";
@@ -495,10 +499,6 @@ public class MainActivity extends AppCompatActivity {
             int index = 0;
             final int maxBytes = 5;
             int bytes;
-            boolean foundStart_left = false;
-            boolean foundStart_right = false;
-            String result_left = "";
-            String result_right = "";
 
             // Keep listening to the InputStream until an exception occurs.
             while (true) {
@@ -632,6 +632,9 @@ public class MainActivity extends AppCompatActivity {
          private ImageView leftButton;
          private ImageView rightButton;
          private ToggleButton penUpDownButton;
+         private Button circle;
+         private Button triangle;
+         private Button rectangle;
 
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -642,6 +645,10 @@ public class MainActivity extends AppCompatActivity {
             leftButton = (ImageView) fragmentView.findViewById(R.id.left_button);
             rightButton = (ImageView) fragmentView.findViewById(R.id.right_button);
             penUpDownButton = (ToggleButton) fragmentView.findViewById(R.id.up_down_button);
+
+            circle = (Button) fragmentView.findViewById(R.id.circle_tag);
+            triangle = (Button) fragmentView.findViewById(R.id.triangle_tag);
+            rectangle = (Button) fragmentView.findViewById(R.id.rectangle_tag);
 
             forwardButton.setOnTouchListener(new View.OnTouchListener(){
                 @Override
@@ -714,6 +721,24 @@ public class MainActivity extends AppCompatActivity {
                         ((MainActivity) getActivity()).connectedThread.writeMsg(ArduinoWriteTags.PEN_DOWN_CMD);
                     }
                     else ((MainActivity) getActivity()).connectedThread.writeMsg(ArduinoWriteTags.PEN_UP_CMD);
+                }
+            });
+            circle.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    ((MainActivity) getActivity()).connectedThread.writeMsg(ArduinoWriteTags.DRAW_CIRCLE_CMD);
+                }
+            });
+            triangle.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    ((MainActivity) getActivity()).connectedThread.writeMsg(ArduinoWriteTags.DRAW_TRIANGLE_CMD);
+                }
+            });
+            rectangle.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    ((MainActivity) getActivity()).connectedThread.writeMsg(ArduinoWriteTags.DRAW_REC_CMD);
                 }
             });
 

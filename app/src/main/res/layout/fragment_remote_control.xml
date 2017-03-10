@@ -27,8 +27,8 @@
 
     <ToggleButton
         android:text="ToggleButton"
-        android:layout_width="70dp"
-        android:layout_height="70dp"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
         android:background="@drawable/blue_circle"
         android:layout_gravity="center"
         android:textColor="@color/colorAccent"
@@ -58,7 +58,34 @@
         android:layout_marginTop="265dp"
         android:id="@+id/drawing_tag"
         android:src="@drawable/drawing_tag"
-        android:layout_marginStart="20dp"/>
+        android:layout_marginStart="30dp"/>
+
+    <Button
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_marginTop="315dp"
+        android:id="@+id/circle_tag"
+        android:background="@drawable/green_circle"
+        android:backgroundTint="@color/colorAccent"
+        android:layout_marginStart="170dp"/>
+
+    <Button
+        android:layout_width="35dp"
+        android:layout_height="35dp"
+        android:layout_marginTop="313dp"
+        android:id="@+id/triangle_tag"
+        android:background="@drawable/green_triangle"
+        android:backgroundTint="@color/colorAccent"
+        android:layout_marginStart="210dp"/>
+
+    <Button
+        android:layout_width="35dp"
+        android:layout_height="35dp"
+        android:layout_marginTop="313dp"
+        android:id="@+id/rectangle_tag"
+        android:background="@drawable/green_rectangle"
+        android:backgroundTint="@color/colorAccent"
+        android:layout_marginStart="255dp"/>
 
 
 </FrameLayout>
