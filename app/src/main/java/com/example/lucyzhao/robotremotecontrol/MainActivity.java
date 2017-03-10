@@ -127,11 +127,14 @@ public class MainActivity extends AppCompatActivity {
             //TODO: HANDLE SPEEDS
             switch(msg.what) {
                 case MessageConstants.WHEEL_READING_LEFT:
-                    System.out.println("wheelSpeed left is " + msg.arg1);
-                    leftWheelSpeed.setText(msg.arg1);
+                    System.out.println("wheelSpeed left is " + msg.obj);
+                    leftWheelSpeed.setText((String)msg.obj);
                     break;
                 case MessageConstants.WHEEL_READING_RIGHT:
-                    System.out.println("wheelSpeed right is " + msg.arg1);
+                    System.out.println("wheelSpeed right is " + msg.obj);
+                    break;
+                case MessageConstants.FUNCTION_1_STATE:
+                    System.out.println("function 1 state is " + msg.obj);
                     break;
                 case MessageConstants.CONNECTION_FAILURE:
                     System.out.println("handling socket connection failure");
@@ -160,6 +163,8 @@ public class MainActivity extends AppCompatActivity {
         byte[] END_TAG_LEFT = "}".getBytes();
         byte[] START_TAG_RIGHT = "[".getBytes();
         byte[] END_TAG_RIGHT = "]".getBytes();
+        byte[] START_TAG_STATE = "#".getBytes();
+        byte[] END_TAG_STATE = "*".getBytes();
     }
 
     private interface ArduinoWriteTags {
@@ -449,7 +454,9 @@ public class MainActivity extends AppCompatActivity {
             if (mmBuffer[i] == ArduinoReadTags.END_TAG_LEFT[0]){
                 System.out.println("result is" + result_strings[messageConstant]);
                 // Send the obtained bytes to the UI activity.
-                Message readMsg = mHandler.obtainMessage(messageConstant, Integer.parseInt(result_strings[messageConstant]));
+                //Message readMsg = mHandler.obtainMessage(messageConstant, Integer.parseInt(result_strings[messageConstant]));
+                //TODO test if this is correct
+                Message readMsg = mHandler.obtainMessage(messageConstant, result_strings[messageConstant]);
                 readMsg.sendToTarget();
                 result_strings[messageConstant] = "";
                 foundStart_array[messageConstant] = false;
@@ -481,42 +488,15 @@ public class MainActivity extends AppCompatActivity {
                     // Read from the InputStream.
                     bytes = mmInStream.read(mmBuffer, index, maxBytes);
                     for(int i = index; i < index + bytes; i++){
-                        //TODO CONDENSE THIS INTO ONE FUNCTION
-                    /*---------state for left wheel readings-----------*/
-                        if (mmBuffer[i] == ArduinoReadTags.END_TAG_LEFT[0]){
-                            System.out.println("left result is " + result_left);
-                            // Send the obtained bytes to the UI activity.
-                            Message readMsg = mHandler.obtainMessage(MessageConstants.WHEEL_READING_LEFT, Integer.parseInt(result_left));
-                            readMsg.sendToTarget();
-                            result_left = "";
-                            foundStart_left = false;
-                        }
-                        else if(foundStart_left) {
-                            result_left = result_left + (char) mmBuffer[i];
-                        }
-                        else if(mmBuffer[i] == ArduinoReadTags.START_TAG_LEFT[0]){
-                            foundStart_left = true;
-                        }
-                    /*---------state for right wheel readings-----------*/
-                        if (mmBuffer[i] == ArduinoReadTags.END_TAG_RIGHT[0]){
-                            System.out.println(" right result is " + result_right);
-                            Message readMsg = mHandler.obtainMessage(MessageConstants.WHEEL_READING_RIGHT, Integer.parseInt(result_right));
-                            readMsg.sendToTarget();
-                            result_right = "";
-                            foundStart_right = false;
-                        }
-                        else if(foundStart_right) {
-                            result_right = result_right + (char) mmBuffer[i];
-                        }
-                        else if(mmBuffer[i] == ArduinoReadTags.START_TAG_RIGHT[0]){
-                            foundStart_right = true;
-                        }
+                        //TODO test this function
+                        readIncomingData(i,ArduinoReadTags.END_TAG_LEFT[0],ArduinoReadTags.START_TAG_LEFT[0],MessageConstants.WHEEL_READING_LEFT);
+                        readIncomingData(i,ArduinoReadTags.END_TAG_RIGHT[0],ArduinoReadTags.START_TAG_RIGHT[0],MessageConstants.WHEEL_READING_RIGHT);
+                        readIncomingData(i,ArduinoReadTags.END_TAG_STATE[0],ArduinoReadTags.START_TAG_STATE[0],MessageConstants.FUNCTION_1_STATE);
                     }
                     index = index + bytes;
                     if(index >= mmBuffer.length - maxBytes ){
                         index = 0;
                     }
-
 
                 } catch (IOException e) {
                     Log.d(TAG, "Input stream was disconnected", e);
